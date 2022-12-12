@@ -1,0 +1,139 @@
+--importing libraries--
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+        
+import torch
+import torchvision
+import torchvision.transforms as transforms
+
+--transform PIL images to tensors and normalize to range of [-1,1]--
+
+transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))])
+
+--downloading data and data loader--
+
+batch_size=4
+trainset=torchvision.datasets.CIFAR10(root='./data', train=True, transform=transform, download=True)
+trainloader=torch.utils.data.DataLoader(dataset=trainset,batch_size=batch_size,shuffle=True, num_workers=2)
+
+testset=torchvision.datasets.CIFAR10(root='./data',train=False,transform=transform,download=True)
+testloader=torch.utils.data.DataLoader(dataset=testset,batch_size=batch_size,shuffle=False,num_workers=2)
+
+classes=('plane', 'car', 'bird', 'cat','deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+--see sample images from trainset--
+
+import matplotlib.pyplot as plt
+
+image, label=trainset[12]
+print(classes[label])
+image=image*0.5+0.5
+plt.imshow(image.permute(1,2,0))
+
+--define a CNN model--
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CNNModel(nn.Module):
+    def __init__(self):
+        super(CNNModel,self).__init__()
+        
+        self.cnn1=nn.Conv2d(in_channels=3,out_channels=32,kernel_size=3,padding=1)
+        self.relu1=nn.ReLU()
+        self.cnn2=nn.Conv2d(in_channels=32,out_channels=64,kernel_size=3,padding=1)
+        self.relu2=nn.ReLU()
+        self.maxpool1=nn.MaxPool2d(kernel_size=2,stride=2)
+        
+        self.cnn3=nn.Conv2d(in_channels=64,out_channels=128,kernel_size=3,padding=1)
+        self.relu3=nn.ReLU()
+        self.cnn4=nn.Conv2d(in_channels=128,out_channels=128,kernel_size=3,padding=1)
+        self.relu4=nn.ReLU()
+        self.maxpool2=nn.MaxPool2d(kernel_size=2,stride=2)
+        
+        self.cnn5=nn.Conv2d(in_channels=128,out_channels=256,kernel_size=3,padding=1)
+        self.relu5=nn.ReLU()
+        self.cnn6=nn.Conv2d(in_channels=256,out_channels=256,kernel_size=3,padding=1)
+        self.relu6=nn.ReLU()
+        self.maxpool3=nn.MaxPool2d(kernel_size=2,stride=2)
+        
+        self.fc1=nn.Linear(256*4*4,1024)
+        self.relu7=nn.ReLU()
+        
+        self.fc2=nn.Linear(1024,512)
+        self.relu8=nn.ReLU()
+        
+        self.fc3=nn.Linear(512,10)
+    
+    def forward(self,x):
+        x=self.cnn1(x)
+        x=self.relu1(x)
+        x=self.cnn2(x)
+        x=self.relu2(x)
+        x=self.maxpool1(x)
+        
+        x=self.cnn3(x)
+        x=self.relu3(x)
+        x=self.cnn4(x)
+        x=self.relu4(x)
+        x=self.maxpool2(x)
+        
+        x=self.cnn5(x)
+        x=self.relu5(x)
+        x=self.cnn6(x)
+        x=self.relu6(x)
+        x=self.maxpool3(x)
+        
+        x=torch.flatten(x,1)
+        
+        x=self.fc1(x)
+        x=self.relu7(x)
+        x=self.fc2(x)
+        x=self.relu8(x)
+        x=self.fc3(x)
+        return x
+
+
+--Here we using cross entropy loss as our loss function and SGD as optimizer--
+
+import torch.optim as optim
+import torch.nn as nn
+cnn=CNNModel()
+lossfunc=nn.CrossEntropyLoss()
+optimizer=optim.SGD(cnn.parameters(),lr=0.001,momentum=0.9)
+
+--training the cnn model--
+
+from torch.autograd import Variable
+for epoch in range(9):
+    for i, data in enumerate(trainloader,0):
+        images,labels=data
+        optimizer.zero_grad()
+        outputs=cnn(images)
+        
+        loss=lossfunc(outputs,labels)
+        loss.backward()
+        optimizer.step()
+        
+        if i%2000==1999:
+            print('Iteration:{},Loss:{}'.format(i+1,loss.data))
+
+--computing accuracy using test dataset--
+
+total=0
+correct=0
+with torch.no_grad():
+    for data in testloader:
+        images,labels=data
+        outputs=cnn(images)
+        _,predicted=torch.max(outputs.data,1)
+        correct+=(labels==predicted).sum()
+        total+=len(labels)
+    accuracy=correct*100/total
+    print('Accuracy:{}'.format(accuracy))
