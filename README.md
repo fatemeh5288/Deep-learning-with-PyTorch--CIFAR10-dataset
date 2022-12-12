@@ -8,4 +8,4 @@ About my model: consits of 2 convlolutional layesr after which we apply ReLu for
 
 Optimizer and loss: I used stochastic gradient descent as optimize with lr of 0.001 and cross entropy loss as my loss function.
 
-Trained the model for 30 epochs in batch size of 4. The final accuracy I obtained was 60%
+Trained the model for 10 epochs in batch size of 4. The final accuracy I obtained was 60%
