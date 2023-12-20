@@ -1,5 +1,5 @@
 # Deep-learning-with-PyTorch--CIFAR10-dataset
-This is my first deep learning project with PyTorch. CIFAR10 dataset contains images of 10 different objects including plane, car, bird, cat, dog, frog, horse, ship, and 
+CIFAR10 dataset contains images of 10 different objects including plane, car, bird, cat, dog, frog, horse, ship, and 
 truck. The goal is to create a neural network model to identify these images with a good accuracy.
 The data consists of 3 channels (RGB) and 32x32 pixels so the dimension of our tensor is going to be 3x32x32. We have 50000 sample images in training set and 10000
 in test set. 
